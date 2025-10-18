@@ -4,7 +4,7 @@ name: CI/CD Pipeline to Docker Registry
 on:
   push:
     # Change the branch to match your main branch name
-    branches: [ "main" ] 
+    branches: [ "phase-0" ] 
 
 jobs:
   build_and_push_image:
