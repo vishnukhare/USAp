@@ -25,7 +25,7 @@ jobs:
 
     # 2. CRITICAL: BUILD AND PUSH
     - name: Build and push PHP image
-      uses: docker/build-and-push-action@v5
+      uses: docker/build-push-action@v5
       with:
         context: .
         push: true # This makes the image available to Kubernetes
