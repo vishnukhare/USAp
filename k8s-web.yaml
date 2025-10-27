@@ -10,7 +10,6 @@ spec:
   template:
     metadata: { labels: { app: php-web } }
     spec:
-      # ⬇️ START OF MODIFIED SPEC ⬇️
       containers:
       # 1. MAIN PHP APPLICATION CONTAINER
       - name: php-web
