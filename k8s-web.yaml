@@ -1,0 +1,39 @@
+# k8s-web.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-web-deployment
+  labels: { app: php-web }
+spec:
+  replicas: 2 # Scale your app to 2 instances
+  selector: { matchLabels: { app: php-web } }
+  template:
+    metadata: { labels: { app: php-web } }
+    spec:
+      containers:
+      - name: php-web
+        # CRITICAL: Use the image pushed by your successful CI/CD pipeline
+        image: vishhnu24/php-appointment-system:latest 
+        ports: [{ containerPort: 80 }]
+        # Inject PHP environment variables from the Secret
+        env:
+        - name: DB_HOST # Uses the internal K8s service name
+          value: db 
+        - name: DB_NAME
+          valueFrom: { secretKeyRef: { name: usap-db-creds, key: DB_NAME } }
+        - name: DB_USER
+          valueFrom: { secretKeyRef: { name: usap-db-creds, key: DB_USER } }
+        - name: DB_PASSWORD
+          valueFrom: { secretKeyRef: { name: usap-db-creds, key: DB_PASSWORD } }
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: usap-loadbalancer
+spec:
+  type: NodePort # Exposes the service on your local machine via a high port
+  selector: { app: php-web }
+  ports:
+  - port: 80
+    targetPort: 80
