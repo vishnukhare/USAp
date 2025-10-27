@@ -1,23 +1,23 @@
-# k8s-web.yaml
+# k8s-web.yaml - UPDATED FOR LOGGING SIDECAR
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: php-web-deployment
   labels: { app: php-web }
 spec:
-  replicas: 2 # Scale your app to 2 instances
+  replicas: 2
   selector: { matchLabels: { app: php-web } }
   template:
     metadata: { labels: { app: php-web } }
     spec:
+      # ⬇️ START OF MODIFIED SPEC ⬇️
       containers:
+      # 1. MAIN PHP APPLICATION CONTAINER
       - name: php-web
-        # CRITICAL: Use the image pushed by your successful CI/CD pipeline
         image: vishhnu24/php-appointment-system:latest 
         ports: [{ containerPort: 80 }]
-        # Inject PHP environment variables from the Secret
         env:
-        - name: DB_HOST # Uses the internal K8s service name
+        - name: DB_HOST
           value: db 
         - name: DB_NAME
           valueFrom: { secretKeyRef: { name: usap-db-creds, key: DB_NAME } }
@@ -25,6 +25,27 @@ spec:
           valueFrom: { secretKeyRef: { name: usap-db-creds, key: DB_USER } }
         - name: DB_PASSWORD
           valueFrom: { secretKeyRef: { name: usap-db-creds, key: DB_PASSWORD } }
+        #  Mount the shared volume so Apache can write logs to it
+        volumeMounts:
+        - name: apache-logs
+          mountPath: /var/log/apache2
+          
+      # 2. LOGGING SIDECAR CONTAINER (Fluentd Example)
+      - name: log-sidecar
+        image: fluent/fluentd:v1.16-debian-1
+        # This command runs 'tail -F' to display logs in the container stdout, 
+        # proving it is reading the logs successfully.
+        command: ["sh", "-c"]
+        args: ["tail -F /var/log/apache2/access.log /var/log/apache2/error.log"] 
+        volumeMounts:
+        - name: apache-logs # Mount the shared volume to READ the logs
+          mountPath: /var/log/apache2
+          
+      # Define the shared volume
+      volumes:
+      - name: apache-logs
+        emptyDir: {}
+      
 
 ---
 apiVersion: v1
@@ -32,7 +53,7 @@ kind: Service
 metadata:
   name: usap-loadbalancer
 spec:
-  type: NodePort # Exposes the service on your local machine via a high port
+  type: NodePort
   selector: { app: php-web }
   ports:
   - port: 80

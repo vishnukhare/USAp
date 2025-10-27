@@ -1,0 +1,45 @@
+# k8s-monitoring.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-deployment
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest  # Using the official image
+        ports:
+        - containerPort: 3000
+        env:
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: admin_password # CHANGE THIS! Use a secure password
+        - name: GF_SECURITY_ADMIN_USER
+          value: admin
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+spec:
+  type: NodePort # Exposes Grafana outside the cluster
+  selector:
+    app: grafana
+  ports:
+  - port: 3000
+    targetPort: 3000
+    # Optional: You can specify a nodePort, e.g., nodePort: 32000
