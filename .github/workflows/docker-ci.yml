@@ -54,15 +54,22 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Deploy Application to Kubernetes
+        env:
+          # Define the image name outside of the YAML files
+          WEB_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/usap-web:latest
         run: |
-          echo "Applying MariaDB Secret and Deployment..."
+          # 1. Substitute the image name in the web-app.yaml before applying
+          # The sed command replaces the placeholder with the real image name.
+          sed -i 's|DOCKER_IMAGE_PLACEHOLDER|${{ env.WEB_IMAGE_NAME }}|g' web-app.yaml
+
+          echo "Applying Secrets and Deployments..."
           kubectl apply -f mariadb-secret.yaml
           kubectl apply -f mariadb-db.yaml
 
           echo "Applying Web Application Deployment..."
           kubectl apply -f web-app.yaml
 
-          # Force a rolling restart to pull the new image for the web app
+          # Force a rolling restart to pick up the new changes
           kubectl rollout restart deployment/usap-web-deployment
 
           # Verify deployment status (waits for Pods to be ready)

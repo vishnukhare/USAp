@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y wget \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 # --- END: K8s Dependency Addition ---
 
-    
+
 # Copy the entire project into the web root
 COPY . /var/www/html/
 

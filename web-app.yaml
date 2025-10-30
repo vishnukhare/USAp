@@ -20,7 +20,7 @@ spec:
       containers:
       - name: usap-php-apache
         # CRITICAL: Replace YOUR_DOCKER_USERNAME with your Docker Hub username
-        image: ${{ secrets.DOCKER_USERNAME }}/usap-web:latest 
+        image: DOCKER_IMAGE_PLACEHOLDER
         imagePullPolicy: Never
         command: ["/bin/bash"]
         args:
