@@ -21,6 +21,14 @@ spec:
       - name: usap-php-apache
         # CRITICAL: Replace YOUR_DOCKER_USERNAME with your Docker Hub username
         image: ${{ secrets.DOCKER_USERNAME }}/usap-web:latest 
+        imagePullPolicy: Never
+        command: ["/bin/bash"]
+        args:
+          - "-c"
+          - |
+            /usr/bin/wait-for-it.sh mariadb-service:3306 --timeout=30 --strict -- echo "MariaDB is up! Starting Apache."
+            apache2-foreground
+        # --- END DB WAIT ADDITION ---
         ports:
         - containerPort: 80 # Exposes port 80 inside the container
         env:

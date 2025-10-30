@@ -55,19 +55,16 @@ jobs:
         
       - name: Deploy Application to Kubernetes
         run: |
-          # 1. Ensure kubectl is configured to use the Docker Desktop cluster
-          # This step relies on Docker Desktop being running on the host machine.
-          
-          # 2. Apply Secrets and DB configuration first
           echo "Applying MariaDB Secret and Deployment..."
           kubectl apply -f mariadb-secret.yaml
           kubectl apply -f mariadb-db.yaml
-          
-          # 3. Apply the Web Application Deployment and Service
+
           echo "Applying Web Application Deployment..."
-          # Note: The Deployment will automatically pull the updated ':latest' image
           kubectl apply -f web-app.yaml
-          
-          # Optional: Verify deployment status (waits for Pods to be ready)
-          kubectl rollout status deployment/usap-web-deployment
-          kubectl rollout status deployment/mariadb-deployment
+
+          # Force a rolling restart to pull the new image for the web app
+          kubectl rollout restart deployment/usap-web-deployment
+
+          # Verify deployment status (waits for Pods to be ready)
+          kubectl rollout status deployment/usap-web-deployment --timeout=5m
+          kubectl rollout status deployment/mariadb-deployment --timeout=5m
