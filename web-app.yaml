@@ -66,3 +66,4 @@ spec:
     - protocol: TCP
       port: 8080 # Service port (used by other K8s objects)
       targetPort: 80 # Target port of the container
+      
