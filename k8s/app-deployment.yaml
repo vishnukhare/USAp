@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-appointment-deployment
+  labels:
+    app: php-appointment-system
+spec:
+  replicas: 2 # Start with 2 instances for high availability
+  selector:
+    matchLabels:
+      app: php-appointment-system
+  template:
+    metadata:
+      labels:
+        app: php-appointment-system
+    spec:
+      containers:
+      - name: php-app
+        image: vishhnu24/php-appointment-system:latest # IMPORTANT: Replace 'latest' with the build tag variable in Jenkinsfile deployment stage
+        ports:
+        - containerPort: 80 # Matches EXPOSE 80 in your Dockerfile
+        env: # Database connection details for the PHP app
+        - name: DB_HOST
+          value: "mariadb-service" # Name of the Kubernetes Service for the database
+        - name: MYSQL_USER
+          value: "user" # Matches docker-compose.yml
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secrets # Name of the secret created below
+              key: password
+        - name: MYSQL_DATABASE
+          value: "edoc" # Matches docker-compose.yml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-appointment-service
+spec:
+  type: LoadBalancer # Exposes the application externally (requires cloud provider support)
+  selector:
+    app: php-appointment-system
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
