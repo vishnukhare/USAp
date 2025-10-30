@@ -57,15 +57,22 @@ jobs:
         env:
           WEB_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/usap-web:latest
         run: |
-          # Navigate to the project directory (optional but safe)
-          cd C:\xampp\htdocs\univarasl-apointment-system # Adjust if needed
-          # CRITICAL CLEANUP: Force delete any terminating/stuck pods
-          echo "Forcing cleanup of stuck pods..."
-          kubectl delete pods -l app=usap-web --force --grace-period=0 || true
-          kubectl delete pods -l app=mariadb --force --grace-period=0 || true
+          # Navigate to the project directory (ensure runner starts in the correct directory)
+          cd C:\xampp\htdocs\univarasl-apointment-system 
           
-          # Wait a few seconds for volume detach (important for Windows/Docker Desktop)
+          echo "Forcing cleanup of stuck pods..."
+          # Use PowerShell error handling (try/catch) for kubectl cleanup
+          try {
+              kubectl delete pods -l app=usap-web --force --grace-period=0
+              kubectl delete pods -l app=mariadb --force --grace-period=0
+          }
+          catch {
+              Write-Host "Cleanup commands failed, proceeding anyway (expected if no pods are found)."
+          }
+          
+          # Wait for volume detach
           Start-Sleep -Seconds 5 
+
           # 1. Substitute the image name in the web-app.yaml before applying
           $content = Get-Content web-app.yaml
           $content -replace "DOCKER_IMAGE_PLACEHOLDER", "${{ env.WEB_IMAGE_NAME }}" | Set-Content web-app.yaml
@@ -73,9 +80,9 @@ jobs:
           echo "Applying Secrets and Deployments..."
           kubectl apply -f mariadb-secret.yaml
           kubectl apply -f mariadb-db.yaml
+
           echo "Applying Web Application Deployment..."
           kubectl apply -f web-app.yaml
-
           # Force a rolling restart to pick up the new changes
           kubectl rollout restart deployment/usap-web-deployment
 
