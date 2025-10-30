@@ -1,4 +1,4 @@
-# ⚠️ RECOMMENDED: Use a currently supported PHP version for security and performance
+#  RECOMMENDED: Use a currently supported PHP version for security and performance
 FROM php:8.2-apache
 
 # Install necessary PHP extensions for MySQL connection

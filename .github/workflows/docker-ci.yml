@@ -1,4 +1,4 @@
-name: Docker CI Pipeline
+name: Docker CI/CD Pipeline
 
 on:
   push:
@@ -7,8 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
+  # CI JOB: Builds the Docker image and pushes to Docker Hub
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout code
@@ -24,7 +27,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME }}/usap-web # Replace 'usap-web' with your desired image name
+          images: ${{ secrets.DOCKER_USERNAME }}/usap-web
           tags: |
             type=sha,prefix=
             latest
@@ -32,7 +35,40 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: . # Looks for the Dockerfile in the root directory
+          context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  # ----------------------------------------------------
+  # CD JOB: Deploys the newly built image to the local runner (CYCLOPE)
+  # ----------------------------------------------------
+  deploy:
+    needs: build-and-push
+    # Set to the runner label. 'self-hosted' is the default and should work.
+    runs-on: self-hosted 
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Log in to Docker Hub (on Runner)
+        # Log in again on the runner to pull the image
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Deploy to Local Docker Environment
+        run: |
+          # 1. Navigate to the project directory on your local machine
+          # The runner needs to execute commands where docker-compose.yml is located.
+          cd C:\xampp\htdocs\univarasl-apointment-system
+          
+          # 2. Pull the latest image from Docker Hub
+          # The 'web' service image tag is now updated in Docker Hub
+          docker compose pull web
+            
+          # 3. Restart the containers to use the new image
+          # This pulls and starts your application with the newly built code.
+          docker compose up -d --force-recreate
+          
+          # 4. Clean up old images to save disk space
+          docker image prune -f
