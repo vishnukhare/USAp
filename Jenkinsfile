@@ -43,8 +43,27 @@ pipeline {
         // This stage will deploy the application to Kubernetes
         stage('Deploy to Kubernetes') {
             steps {
-                // Deployment logic will be added in Step 4
-                echo "Image pushed. Proceeding to Kubernetes deployment..."
+                script {
+                    echo "Deploying image tag: ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    
+                    // 1. Create/Update Secrets (These rarely change)
+                    sh "kubectl apply -f k8s/mariadb-secrets.yaml" 
+                    
+                    // 2. Deploy the Database (If it's the first run)
+                    sh "kubectl apply -f k8s/db-deployment.yaml"
+                    
+                    // 3. Temporarily update the application deployment YAML with the new image tag
+                    // This uses 'sed' to replace the 'latest' placeholder with the actual build tag
+                    sh """
+                        sed -i "s|vishhnu24/php-appointment-system:latest|vishhnu24/php-appointment-system:${IMAGE_TAG}|g" k8s/app-deployment.yaml
+                    """
+
+                    // 4. Apply the application deployment and service
+                    sh "kubectl apply -f k8s/app-deployment.yaml" 
+                    
+                    // Optional: Revert the change in the local file to keep Git clean
+                    // sh "git checkout k8s/app-deployment.yaml" 
+                }
             }
         }
     }
