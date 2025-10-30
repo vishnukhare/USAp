@@ -55,12 +55,12 @@ jobs:
         
       - name: Deploy Application to Kubernetes
         env:
-          # Define the image name outside of the YAML files
           WEB_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/usap-web:latest
         run: |
-          # 1. Substitute the image name in the web-app.yaml before applying
-          # The sed command replaces the placeholder with the real image name.
-          sed -i 's|DOCKER_IMAGE_PLACEHOLDER|${{ env.WEB_IMAGE_NAME }}|g' web-app.yaml
+          # 1. Substitute the image name in the web-app.yaml using PowerShell commands
+          # This replaces DOCKER_IMAGE_PLACEHOLDER with the actual image path.
+          $content = Get-Content web-app.yaml
+          $content -replace "DOCKER_IMAGE_PLACEHOLDER", "${{ env.WEB_IMAGE_NAME }}" | Set-Content web-app.yaml
 
           echo "Applying Secrets and Deployments..."
           kubectl apply -f mariadb-secret.yaml
