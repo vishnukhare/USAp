@@ -1,0 +1,85 @@
+# ----------------------------------------------------------------
+# Persistent Volume Claim (PVC): Requests persistent storage for MariaDB
+# ----------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mariadb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce # Can only be mounted by one node at a time (standard for single DB instance)
+  resources:
+    requests:
+      storage: 2Gi # Request 2 GB of storage (adjust as needed)
+---
+# ----------------------------------------------------------------
+# Deployment: Manages the MariaDB Pod
+# ----------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-deployment
+  labels:
+    app: mariadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  strategy:
+    type: Recreate # Use Recreate strategy to prevent data corruption during updates
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb:10.5 # Use the same version from your docker-compose.yml
+        ports:
+        - containerPort: 3306
+        env:
+          # Use values from the mariadb-secret
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_PASSWORD
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_DATABASE
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_ROOT_PASSWORD
+        volumeMounts:
+        - name: mariadb-storage
+          mountPath: /var/lib/mysql # Default data directory for MariaDB
+      volumes:
+      - name: mariadb-storage
+        persistentVolumeClaim:
+          claimName: mariadb-pvc
+---
+# ----------------------------------------------------------------
+# Service: Provides a stable DNS name for the database (used by web-app)
+# ----------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-service # CRITICAL: This MUST match the DB_HOST value in web-app.yaml
+  labels:
+    app: mariadb
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: mariadb
+  clusterIP: None # Headless service for better persistence

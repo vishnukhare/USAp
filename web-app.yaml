@@ -1,0 +1,60 @@
+# ----------------------------------------------------------------
+# Deployment: Manages the Pods (containers) for the PHP application
+# ----------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: usap-web-deployment
+  labels:
+    app: usap-web
+spec:
+  replicas: 1 # Start with 1 replica for local testing
+  selector:
+    matchLabels:
+      app: usap-web
+  template:
+    metadata:
+      labels:
+        app: usap-web
+    spec:
+      containers:
+      - name: usap-php-apache
+        # CRITICAL: Replace YOUR_DOCKER_USERNAME with your Docker Hub username
+        image: ${{ secrets.DOCKER_USERNAME }}/usap-web:latest 
+        ports:
+        - containerPort: 80 # Exposes port 80 inside the container
+        env:
+        # Connect to the MariaDB Service using its Kubernetes DNS name
+        - name: DB_HOST
+          value: mariadb-service # This is the name of the database service
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_PASSWORD
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: MYSQL_DATABASE
+---
+# ----------------------------------------------------------------
+# Service: Exposes the PHP application externally
+# ----------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: usap-web-service
+spec:
+  type: NodePort # Allows external access on a high port (e.g., 30000-32767)
+  selector:
+    app: usap-web
+  ports:
+    - protocol: TCP
+      port: 8080 # Service port (used by other K8s objects)
+      targetPort: 80 # Target port of the container

@@ -1,4 +1,4 @@
-name: Docker CI/CD Pipeline
+name: K8s CI/CD Pipeline
 
 on:
   push:
@@ -7,7 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  # CI JOB: Builds the Docker image and pushes to Docker Hub
+  # ----------------------------------------------------
+  # 1. CI JOB: Builds the Docker image and pushes to Docker Hub
+  # ----------------------------------------------------
   build-and-push:
     runs-on: ubuntu-latest
     outputs:
@@ -41,34 +43,31 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   # ----------------------------------------------------
-  # CD JOB: Deploys the newly built image to the local runner (CYCLOPE)
+  # 2. CD JOB: Deploys to Local K8s Cluster (Docker Desktop)
   # ----------------------------------------------------
   deploy:
     needs: build-and-push
-    # Set to the runner label. 'self-hosted' is the default and should work.
-    runs-on: self-hosted 
+    runs-on: self-hosted # Targets your local CYCLOPE runner
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Log in to Docker Hub (on Runner)
-        # Log in again on the runner to pull the image
-        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Deploy to Local Docker Environment
+      - name: Deploy Application to Kubernetes
         run: |
-          # 1. Navigate to the project directory on your local machine
-          # The runner needs to execute commands where docker-compose.yml is located.
-          cd C:\xampp\htdocs\univarasl-apointment-system
+          # 1. Ensure kubectl is configured to use the Docker Desktop cluster
+          # This step relies on Docker Desktop being running on the host machine.
           
-          # 2. Pull the latest image from Docker Hub
-          # The 'web' service image tag is now updated in Docker Hub
-          docker compose pull web
-            
-          # 3. Restart the containers to use the new image
-          # This pulls and starts your application with the newly built code.
-          docker compose up -d --force-recreate
+          # 2. Apply Secrets and DB configuration first
+          echo "Applying MariaDB Secret and Deployment..."
+          kubectl apply -f mariadb-secret.yaml
+          kubectl apply -f mariadb-db.yaml
           
-          # 4. Clean up old images to save disk space
-          docker image prune -f
+          # 3. Apply the Web Application Deployment and Service
+          echo "Applying Web Application Deployment..."
+          # Note: The Deployment will automatically pull the updated ':latest' image
+          kubectl apply -f web-app.yaml
+          
+          # Optional: Verify deployment status (waits for Pods to be ready)
+          kubectl rollout status deployment/usap-web-deployment
+          kubectl rollout status deployment/mariadb-deployment
