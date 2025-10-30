@@ -109,10 +109,10 @@ jobs:
 
           # Install the prometheus-stack which includes Prometheus and Grafana
           echo "Deploying kube-prometheus-stack..."
-          # Deploying into the 'monitoring' namespace and setting NodePort access
-          helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
-            --namespace monitoring --create-namespace \
-            --set prometheus.service.type=NodePort \
+          # FIX: Replaced '\' with PowerShell backtick '`' for line continuation
+          helm upgrade --install prometheus prometheus-community/kube-prometheus-stack `
+            --namespace monitoring --create-namespace `
+            --set prometheus.service.type=NodePort `
             --set grafana.service.type=NodePort
-            
+          
           echo "Monitoring stack deployed! Run 'kubectl get svc -n monitoring' to find ports."
