@@ -93,26 +93,26 @@ jobs:
   # ----------------------------------------------------
   # 3. MONITORING JOB: Deploy Prometheus and Grafana (using Helm)
   # ----------------------------------------------------
-    monitor:
-      needs: deploy # Runs only after the application deployment succeeds
-      runs-on: self-hosted # Targets your local CYCLOPE runner
+  monitor:
+    needs: deploy # Runs only after the application deployment succeeds
+    runs-on: self-hosted # Targets your local CYCLOPE runner
 
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-        - name: Install Prometheus and Grafana
-          run: |
-            echo "Setting up Helm repositories..."
-            helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-            helm repo update
+      - name: Install Prometheus and Grafana
+        run: |
+          echo "Setting up Helm repositories..."
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
 
-            # Install the prometheus-stack which includes Prometheus and Grafana
-            echo "Deploying kube-prometheus-stack..."
-            # Deploying into the 'monitoring' namespace and setting NodePort access
-            helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
-              --namespace monitoring --create-namespace \
-              --set prometheus.service.type=NodePort \
-              --set grafana.service.type=NodePort
+          # Install the prometheus-stack which includes Prometheus and Grafana
+          echo "Deploying kube-prometheus-stack..."
+          # Deploying into the 'monitoring' namespace and setting NodePort access
+          helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+            --namespace monitoring --create-namespace \
+            --set prometheus.service.type=NodePort \
+            --set grafana.service.type=NodePort
             
-            echo "Monitoring stack deployed! Run 'kubectl get svc -n monitoring' to find ports."
+          echo "Monitoring stack deployed! Run 'kubectl get svc -n monitoring' to find ports."
