@@ -57,15 +57,22 @@ jobs:
         env:
           WEB_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/usap-web:latest
         run: |
-          # 1. Substitute the image name in the web-app.yaml using PowerShell commands
-          # This replaces DOCKER_IMAGE_PLACEHOLDER with the actual image path.
+          # Navigate to the project directory (optional but safe)
+          cd C:\xampp\htdocs\univarasl-apointment-system # Adjust if needed
+          # CRITICAL CLEANUP: Force delete any terminating/stuck pods
+          echo "Forcing cleanup of stuck pods..."
+          kubectl delete pods -l app=usap-web --force --grace-period=0 || true
+          kubectl delete pods -l app=mariadb --force --grace-period=0 || true
+          
+          # Wait a few seconds for volume detach (important for Windows/Docker Desktop)
+          Start-Sleep -Seconds 5 
+          # 1. Substitute the image name in the web-app.yaml before applying
           $content = Get-Content web-app.yaml
           $content -replace "DOCKER_IMAGE_PLACEHOLDER", "${{ env.WEB_IMAGE_NAME }}" | Set-Content web-app.yaml
 
           echo "Applying Secrets and Deployments..."
           kubectl apply -f mariadb-secret.yaml
           kubectl apply -f mariadb-db.yaml
-
           echo "Applying Web Application Deployment..."
           kubectl apply -f web-app.yaml
 
