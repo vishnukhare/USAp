@@ -14,8 +14,9 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                // Gets code from your GitHub repository
-                git url: 'https://github.com/vishnukhare/USAp.git'
+                // Gets code from your GitHub repository (This line needs correction)
+                git url: 'https://github.com/vishnukhare/USAp.git', 
+                    branch: 'phase-0' // <-- ADD THIS LINE
             }
         }
         
