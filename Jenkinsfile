@@ -22,8 +22,12 @@ pipeline {
         
         stage('Build Docker Image') {
             steps {
-                // Builds the Docker image using your Dockerfile
-                sh "docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} ."
+                script {
+                    // This runs the 'sh' command *inside* the docker:dind container
+                    docker.image('docker:dind').inside { 
+                        sh "docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG} ."
+                    }
+                }
             }
         }
         
