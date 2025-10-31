@@ -41,6 +41,18 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          # Use the newly built image tag
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/usap-web:latest
+          format: 'table'
+          exit-code: '0' # Don't fail the pipeline yet, just report
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+      # --- END: TRIVY SCAN ADDITION ---
 
   # ----------------------------------------------------
   # 2. CD JOB: Deploys to Local K8s Cluster (Docker Desktop)
