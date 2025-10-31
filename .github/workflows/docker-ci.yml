@@ -60,19 +60,27 @@ jobs:
           # Navigate to the project directory (ensure runner starts in the correct directory)
           cd C:\xampp\htdocs\univarasl-apointment-system 
           
-          echo "Forcing cleanup of stuck pods..."
-          # Use PowerShell error handling (try/catch) for kubectl cleanup
+          echo "Forcing cleanup of all prior resources..."
+          # Delete all existing resources to prevent Persistent Volume lock issues
+          # Note: '|| true' or try/catch is used to prevent failure if resources don't exist yet.
+          kubectl delete deployment usap-web-deployment --ignore-not-found=true
+          kubectl delete deployment mariadb-deployment --ignore-not-found=true
+          kubectl delete service usap-web-service --ignore-not-found=true
+          kubectl delete service mariadb-service --ignore-not-found=true
+          kubectl delete secret mariadb-secret --ignore-not-found=true
+          kubectl delete pvc mariadb-pvc --ignore-not-found=true
+          
+          # CRITICAL CLEANUP: Force delete any terminating/stuck pods (using try/catch for PowerShell)
           try {
               kubectl delete pods -l app=usap-web --force --grace-period=0
               kubectl delete pods -l app=mariadb --force --grace-period=0
           }
           catch {
-              Write-Host "Cleanup commands failed, proceeding anyway (expected if no pods are found)."
+              Write-Host "Cleanup of old pods failed, proceeding anyway."
           }
           
-          # Wait for volume detach
-          Start-Sleep -Seconds 5 
-
+          Start-Sleep -Seconds 5 # Wait for volume detach
+          
           # 1. Substitute the image name in the web-app.yaml before applying
           $content = Get-Content web-app.yaml
           $content -replace "DOCKER_IMAGE_PLACEHOLDER", "${{ env.WEB_IMAGE_NAME }}" | Set-Content web-app.yaml
@@ -82,11 +90,11 @@ jobs:
           kubectl apply -f mariadb-db.yaml
 
           echo "Applying Web Application Deployment..."
+          # Apply the web app deployment
           kubectl apply -f web-app.yaml
-          # Force a rolling restart to pick up the new changes
-          kubectl rollout restart deployment/usap-web-deployment
 
           # Verify deployment status (waits for Pods to be ready)
+          echo "Waiting for Web App deployment to rollout..."
           kubectl rollout status deployment/usap-web-deployment --timeout=5m
           kubectl rollout status deployment/mariadb-deployment --timeout=5m
 

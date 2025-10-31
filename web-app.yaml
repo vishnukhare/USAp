@@ -21,7 +21,7 @@ spec:
       - name: usap-php-apache
         # CRITICAL: Replace YOUR_DOCKER_USERNAME with your Docker Hub username
         image: DOCKER_IMAGE_PLACEHOLDER
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         command: ["/bin/bash"]
         args:
           - "-c"
@@ -66,4 +66,3 @@ spec:
     - protocol: TCP
       port: 8080 # Service port (used by other K8s objects)
       targetPort: 80 # Target port of the container
-      
